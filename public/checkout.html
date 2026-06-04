@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Checkout - Bengaluru Cafe</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+body{
+    background:#f5f5f5;
+    font-family:'Segoe UI',sans-serif;
+}
+
+.navbar{
+    background:#0b3d0b;
+}
+
+.checkout-box{
+    max-width:900px;
+    margin:auto;
+    margin-top:40px;
+    background:white;
+    padding:30px;
+    border-radius:15px;
+    box-shadow:0 4px 10px rgba(0,0,0,.1);
+}
+
+.order-summary{
+    background:#f8f8f8;
+    padding:20px;
+    border-radius:10px;
+}
+
+</style>
+
+</head>
+<body>
+
+<nav class="navbar navbar-dark">
+<div class="container">
+<a href="/" class="navbar-brand">
+🍽 Bengaluru Cafe
+</a>
+</div>
+</nav>
+
+<div class="checkout-box">
+
+<h2 class="mb-4">
+Checkout
+</h2>
+
+<div class="row">
+
+<div class="col-md-6">
+
+<div class="mb-3">
+<label class="form-label">Customer Name</label>
+<input type="text" id="customerName" class="form-control">
+</div>
+
+<div class="mb-3">
+<label class="form-label">Phone Number</label>
+<input type="text" id="phone" class="form-control">
+</div>
+
+<div class="mb-3">
+<label class="form-label">Delivery Address</label>
+<textarea id="address" class="form-control"></textarea>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Payment Method</label>
+
+<select id="payment" class="form-select">
+<option>Cash on Delivery</option>
+<option>UPI</option>
+<option>Card</option>
+</select>
+</div>
+
+</div>
+
+<div class="col-md-6">
+
+<div class="order-summary">
+
+<h4>Order Summary</h4>
+
+<div id="summary"></div>
+
+<hr>
+
+<h5 id="totalAmount">
+Total: ₹0
+</h5>
+
+</div>
+
+</div>
+
+</div>
+
+<button
+class="btn btn-success mt-4 w-100"
+onclick="placeOrder()">
+Place Order
+</button>
+
+</div>
+
+<script>
+
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+let total = 0;
+let html = '';
+
+cart.forEach(item=>{
+
+let itemTotal = item.price * item.quantity;
+
+total += itemTotal;
+
+html += `
+<p>
+${item.name}
+× ${item.quantity}
+=
+₹${itemTotal}
+</p>
+`;
+
+});
+
+document.getElementById('summary').innerHTML = html;
+
+document.getElementById('totalAmount').innerHTML =
+`Total: ₹${total}`;
+
+function placeOrder(){
+
+let customerName =
+document.getElementById('customerName').value;
+
+let phone =
+document.getElementById('phone').value;
+
+let address =
+document.getElementById('address').value;
+
+let payment =
+document.getElementById('payment').value;
+
+if(
+!customerName ||
+!phone ||
+!address
+){
+alert('Please fill all details');
+return;
+}
+
+fetch('/api/order',{
+
+method:'POST',
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify({
+
+customerName,
+phone,
+address,
+payment,
+items:cart,
+total
+
+})
+
+})
+.then(r=>r.json())
+.then(()=>{
+
+alert(
+'Order placed successfully!'
+);
+
+localStorage.removeItem('cart');
+
+window.location.href='/';
+
+});
+
+}
+
+</script>
+
+</body>
+</html>
