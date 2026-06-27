@@ -129,6 +129,56 @@ Menu Items
 
 </div>
 
+<h2 class="mt-5">
+Menu Management
+</h2>
+
+<div class="card p-3 mb-3">
+<h5 id="formTitle">Add New Item</h5>
+<input type="hidden" id="editId">
+<div class="row g-2">
+<div class="col-md-3">
+<input class="form-control" id="itemName" placeholder="Name">
+</div>
+<div class="col-md-2">
+<input class="form-control" id="itemPrice" type="number" placeholder="Price">
+</div>
+<div class="col-md-2">
+<select class="form-control" id="itemCategory">
+<option value="idli">Idli</option>
+<option value="dosa">Dosa</option>
+<option value="special">Special</option>
+<option value="sweet">Sweet</option>
+<option value="pesarattu">Pesarattu</option>
+</select>
+</div>
+<div class="col-md-3">
+<input class="form-control" id="itemImage" placeholder="Image URL (optional)">
+</div>
+<div class="col-md-2">
+<button class="btn btn-success w-100" onclick="saveMenuItem()" id="saveBtn">Add</button>
+</div>
+</div>
+</div>
+
+<table class="table table-bordered">
+
+<thead>
+<tr>
+<th>Image</th>
+<th>Name</th>
+<th>Price</th>
+<th>Category</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody id="menuTable"></tbody>
+
+</table>
+
+</div>
+
 <script>
 
 // ORDERS
@@ -193,6 +243,7 @@ users.length;
 
 // MENU
 
+function loadMenu(){
 fetch('/api/menu')
 .then(r=>r.json())
 .then(menu=>{
@@ -203,22 +254,97 @@ menu.forEach(item=>{
 
 html += `
 <tr>
-<td>${item.id}</td>
+<td><img src="${item.image}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;"></td>
 <td>${item.name}</td>
 <td>₹${item.price}</td>
 <td>${item.category}</td>
+<td>
+<button class="btn btn-sm btn-primary me-1" onclick="editMenuItem('${item.id}','${item.name.replace(/'/g, "\\'")}',${item.price},'${item.category}','${item.image}')">Edit</button>
+<button class="btn btn-sm btn-danger" onclick="deleteMenuItem('${item.id}')">Delete</button>
+</td>
 </tr>
 `;
 
 });
 
-document.getElementById('menuTable').innerHTML =
-html;
+document.getElementById('menuTable').innerHTML = html;
 
 document.getElementById('totalProducts').innerText =
 menu.length;
 
 });
+}
+
+loadMenu();
+
+function resetMenuForm(){
+document.getElementById('editId').value = '';
+document.getElementById('itemName').value = '';
+document.getElementById('itemPrice').value = '';
+document.getElementById('itemImage').value = '';
+document.getElementById('itemCategory').value = 'idli';
+document.getElementById('formTitle').innerText = 'Add New Item';
+document.getElementById('saveBtn').innerText = 'Add';
+}
+
+function editMenuItem(id, name, price, category, image){
+document.getElementById('editId').value = id;
+document.getElementById('itemName').value = name;
+document.getElementById('itemPrice').value = price;
+document.getElementById('itemCategory').value = category;
+document.getElementById('itemImage').value = image;
+document.getElementById('formTitle').innerText = 'Edit Item';
+document.getElementById('saveBtn').innerText = 'Update';
+}
+
+function saveMenuItem(){
+
+const id = document.getElementById('editId').value;
+const name = document.getElementById('itemName').value.trim();
+const price = parseFloat(document.getElementById('itemPrice').value);
+const category = document.getElementById('itemCategory').value;
+const image = document.getElementById('itemImage').value.trim();
+
+if(!name || !price){
+alert('Please enter a name and price');
+return;
+}
+
+const payload = { name, price, category, image };
+
+const url = id ? `/api/menu/${id}` : '/api/menu';
+const method = id ? 'PUT' : 'POST';
+
+fetch(url, {
+method,
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(payload)
+})
+.then(r => r.json())
+.then(data => {
+if(data.success){
+resetMenuForm();
+loadMenu();
+} else {
+alert(data.message || 'Something went wrong');
+}
+});
+}
+
+function deleteMenuItem(id){
+
+if(!confirm('Delete this item?')) return;
+
+fetch(`/api/menu/${id}`, { method: 'DELETE' })
+.then(r => r.json())
+.then(data => {
+if(data.success){
+loadMenu();
+} else {
+alert(data.message || 'Could not delete item');
+}
+});
+}
 </script>
 
 </body>

@@ -12,8 +12,6 @@ app.use(express.static('public'));
 
 const mongoUri = process.env.MONGODB_URI;
 
-console.log('DEBUG URI:', mongoUri);
-
 if (!mongoUri) {
     console.error('❌ MONGODB_URI is not set. Add it to your .env file or hosting platform environment variables.');
     process.exit(1);
@@ -58,16 +56,126 @@ const Order = mongoose.model('Order', orderSchema);
 
 // ================= MENU =================
 
-const menu = [
-    { id: 1, name: 'Sambar Idli', price: 50, category: 'Idli' },
-    { id: 2, name: 'Gunta Ponganalu', price: 80, category: 'Special' },
-    { id: 3, name: 'Benne Plain Dosa', price: 80, category: 'Dosa' },
-    { id: 4, name: 'Benne Karam Dosa', price: 95, category: 'Dosa' },
-    { id: 5, name: 'Ghee Onion Pesarattu', price: 100, category: 'Pesarattu' }
-];
+const menuSchema = new mongoose.Schema({
+    name: String,
+    price: Number,
+    category: String,
+    image: String
+});
 
-app.get('/api/menu', (req, res) => {
-    res.json(menu);
+const MenuItem = mongoose.model('MenuItem', menuSchema);
+
+// Seed the menu with the original starter items the first time the app
+// connects to an empty database. Safe to run every startup — it only
+// inserts if the collection is empty.
+async function seedMenuIfEmpty() {
+    try {
+        const count = await MenuItem.countDocuments();
+        if (count === 0) {
+            await MenuItem.insertMany([
+                { name: 'Sambar Idli', price: 50, category: 'idli', image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500' },
+                { name: 'Gunta Ponganalu', price: 80, category: 'special', image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500' },
+                { name: 'Benne Plain Dosa', price: 80, category: 'dosa', image: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=500' },
+                { name: 'Benne Karam Dosa', price: 95, category: 'dosa', image: 'https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?w=500&auto=format&fit=crop' },
+                { name: 'Ghee Karam Podi Idli', price: 70, category: 'idli', image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=500' },
+                { name: 'Button Idli', price: 60, category: 'idli', image: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=500' },
+                { name: 'Bisi Bele Bath', price: 120, category: 'special', image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500' },
+                { name: 'Carrot Halwa', price: 90, category: 'sweet', image: 'https://images.unsplash.com/photo-1601050690117-94f5f6fa6c3d?w=500' }
+            ]);
+            console.log('🌱 Menu seeded with starter items');
+        }
+    } catch (err) {
+        console.error('❌ Menu seeding failed:', err);
+    }
+}
+
+mongoose.connection.once('open', seedMenuIfEmpty);
+
+// Default placeholder image used when an admin adds an item without one
+const DEFAULT_MENU_IMAGE = 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=500';
+
+function formatMenuItem(item) {
+    return {
+        id: item._id,
+        name: item.name,
+        price: item.price,
+        category: item.category,
+        image: item.image || DEFAULT_MENU_IMAGE
+    };
+}
+
+// GET all menu items
+app.get('/api/menu', async (req, res) => {
+    try {
+        const items = await MenuItem.find();
+        res.json(items.map(formatMenuItem));
+    } catch (error) {
+        console.error('❌ Get Menu Failed:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ADD a new menu item (admin)
+app.post('/api/menu', async (req, res) => {
+    try {
+        const { name, price, category, image } = req.body;
+
+        if (!name || !price || !category) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name, price, and category are required'
+            });
+        }
+
+        const item = new MenuItem({
+            name,
+            price,
+            category: category.toLowerCase(),
+            image: image || DEFAULT_MENU_IMAGE
+        });
+
+        await item.save();
+
+        res.json({ success: true, item: formatMenuItem(item) });
+    } catch (error) {
+        console.error('❌ Add Menu Item Failed:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// EDIT an existing menu item (admin)
+app.put('/api/menu/:id', async (req, res) => {
+    try {
+        const { name, price, category, image } = req.body;
+
+        const update = {};
+        if (name !== undefined) update.name = name;
+        if (price !== undefined) update.price = price;
+        if (category !== undefined) update.category = category.toLowerCase();
+        if (image !== undefined) update.image = image;
+
+        const item = await MenuItem.findByIdAndUpdate(req.params.id, update, { new: true });
+
+        if (!item) {
+            return res.status(404).json({ success: false, message: 'Menu item not found' });
+        }
+
+        res.json({ success: true, item: formatMenuItem(item) });
+    } catch (error) {
+        console.error('❌ Edit Menu Item Failed:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// DELETE a menu item (admin)
+app.delete('/api/menu/:id', async (req, res) => {
+    try {
+        await MenuItem.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Delete Menu Item Failed:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
 });
 
 // ================= REGISTER =================

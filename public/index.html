@@ -181,243 +181,20 @@ onclick="filterMenu('special')">
 Specials
 </button>
 
+<button class="btn btn-success m-1"
+onclick="filterMenu('sweet')">
+Sweets
+</button>
+
 </div>
 <h2 class="menu-title">
 Our Popular Menu
 </h2>
 
-<div class="row g-4">
-
-<!-- Sambar Idli -->
-
-<div class="col-md-3 menu-item idli">
-<div class="card shadow">
-
-<img src="https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500"
-class="card-img-top">
-
-<div class="card-body">
-
-<h5>
-<a href="/product.html?id=1">
-Sambar Idli
-</a>
-</h5>
-
-<p class="price">
-₹50
-</p>
-
-<button
-class="btn btn-order w-100"
-onclick="addToCart(1,'Sambar Idli',50)">
-Add To Cart
-</button>
-
-</div>
-</div>
+<div class="row g-4" id="menuItems">
+<!-- Menu cards are loaded dynamically from /api/menu -->
 </div>
 
-<!-- Gunta Ponganalu -->
-
-<div class="col-md-3 menu-item special">
-<div class="card shadow">
-
-<img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500"
-class="card-img-top">
-
-<div class="card-body">
-
-<h5>
-<a href="/product.html?id=2">
-Gunta Ponganalu
-</a>
-</h5>
-
-<p class="price">
-₹80
-</p>
-
-<button
-class="btn btn-order w-100"
-onclick="addToCart(2,'Gunta Ponganalu',80)">
-Add To Cart
-</button>
-
-</div>
-</div>
-</div>
-
-<!-- Benne Plain Dosa -->
-
-<div class="col-md-3 menu-item dosa">
-<div class="card shadow">
-
-<img src="https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=500"
-class="card-img-top">
-
-<div class="card-body">
-
-<h5>
-<a href="/product.html?id=3">
-Benne Plain Dosa
-</a>
-</h5>
-<p class="price">
-₹80
-</p>
-
-<button
-class="btn btn-order w-100"
-onclick="addToCart(3,'Benne Plain Dosa',80)">
-Add To Cart
-</button>
-
-</div>
-</div>
-</div>
-
-<!-- Benne Karam Dosa -->
-
-<div class="col-md-3 menu-item dosa">
-<div class="card shadow">
-
-<img src="https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?w=500&auto=format&fit=crop"
-class="card-img-top">
-
-<div class="card-body">
-
-<h5>
-<a href="/product.html?id=4">
-Benne Karam Dosa
-</a>
-</h5>
-
-<p class="price">
-₹95
-</p>
-
-<button
-class="btn btn-order w-100"
-onclick="addToCart(4,'Benne Karam Dosa',95)">
-Add To Cart
-</button>
-
-</div>
-</div>
-</div>
-<!-- Ghee Karam Podi Idli -->
-
-<div class="col-md-3 menu-item idli">
-<div class="card shadow">
-
-<img src="https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=500"
-class="card-img-top">
-
-<div class="card-body">
-
-<h5>
-<a href="/product.html?id=5">
-Ghee Karam Podi Idli
-</a>
-</h5>
-
-<p class="price">₹70</p>
-
-<button
-class="btn btn-order w-100"
-onclick="addToCart(5,'Ghee Karam Podi Idli',70)">
-Add To Cart
-</button>
-
-</div>
-</div>
-</div>
-<!-- Button Idli -->
-
-<div class="col-md-3 menu-item idli">
-<div class="card shadow">
-
-<img src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=500"
-class="card-img-top">
-
-<div class="card-body">
-
-<h5>
-<a href="/product.html?id=6">
-Button Idli
-</a>
-</h5>
-
-<p class="price">₹60</p>
-
-<button
-class="btn btn-order w-100"
-onclick="addToCart(6,'Button Idli',60)">
-Add To Cart
-</button>
-
-</div>
-</div>
-</div>
-<!-- Bisi Bele Bath -->
-
-<div class="col-md-3 menu-item special">
-<div class="card shadow">
-
-<img src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500"
-class="card-img-top">
-
-<div class="card-body">
-
-<h5>
-<a href="/product.html?id=7">
-Bisi Bele Bath
-</a>
-</h5>
-
-<p class="price">₹120</p>
-
-<button
-class="btn btn-order w-100"
-onclick="addToCart(7,'Bisi Bele Bath',120)">
-Add To Cart
-</button>
-
-</div>
-</div>
-</div>
-<button class="btn btn-success m-1"
-onclick="filterMenu('sweet')">
-Sweets
-</button>
-<div class="col-md-3 menu-item sweet">
-<div class="card shadow">
-
-<img src="https://images.unsplash.com/photo-1601050690117-94f5f6fa6c3d?w=500"
-class="card-img-top">
-
-<div class="card-body">
-
-<h5>
-<a href="/product.html?id=8">
-Carrot Halwa
-</a>
-</h5>
-
-<p class="price">₹90</p>
-
-<button
-class="btn btn-order w-100"
-onclick="addToCart(8,'Carrot Halwa',90)">
-Add To Cart
-</button>
-
-</div>
-</div>
-</div>
-
-</div>
 </div>
 
 <footer class="text-center">
@@ -428,6 +205,41 @@ Add To Cart
 <script>
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+function renderMenuCard(item) {
+    return `
+<div class="col-md-3 menu-item ${item.category}">
+<div class="card shadow">
+
+<img src="${item.image}" class="card-img-top">
+
+<div class="card-body">
+
+<h5>
+<a href="/product.html?id=${item.id}">
+${item.name}
+</a>
+</h5>
+
+<p class="price">₹${item.price}</p>
+
+<button
+class="btn btn-order w-100"
+onclick="addToCart('${item.id}','${item.name.replace(/'/g, "\\'")}',${item.price})">
+Add To Cart
+</button>
+
+</div>
+</div>
+</div>`;
+}
+
+fetch('/api/menu')
+.then(r => r.json())
+.then(menu => {
+    document.getElementById('menuItems').innerHTML =
+        menu.map(renderMenuCard).join('');
+});
 
 function addToCart(id,name,price){
 
