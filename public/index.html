@@ -80,6 +80,70 @@ footer{
     margin-top:50px;
 }
 
+/* Desktop default: button is full-width below text */
+.btn-order{
+    width:100%;
+}
+
+/* Compact list layout for phones: small thumbnail + name/price + small button, all in a row */
+@media (max-width: 767px) {
+
+    #menuItems .menu-item{
+        flex:0 0 100%;
+        max-width:100%;
+        margin-bottom:10px;
+    }
+
+    #menuItems .card{
+        flex-direction:row;
+        align-items:center;
+        border-radius:10px;
+    }
+
+    #menuItems .card img{
+        width:80px;
+        height:80px;
+        min-width:80px;
+        border-radius:10px;
+        margin:8px;
+    }
+
+    #menuItems .card-body{
+        display:flex;
+        flex-direction:row;
+        align-items:center;
+        justify-content:space-between;
+        padding:8px 10px;
+        width:100%;
+    }
+
+    #menuItems .item-info{
+        flex:1;
+        min-width:0;
+    }
+
+    #menuItems .item-info h5{
+        font-size:0.95rem;
+        margin-bottom:2px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+
+    #menuItems .price{
+        font-size:0.9rem;
+        margin-bottom:0;
+    }
+
+    #menuItems .btn-order{
+        width:auto;
+        padding:6px 14px;
+        font-size:0.8rem;
+        flex-shrink:0;
+        margin-left:8px;
+    }
+}
+
 </style>
 </head>
 
@@ -197,6 +261,31 @@ Our Popular Menu
 
 </div>
 
+<!-- WhatsApp Chat Button -->
+<a href="https://wa.me/91XXXXXXXXXX?text=Hi%2C%20I%20have%20a%20question%20about%20Bengaluru%20Cafe"
+target="_blank"
+rel="noopener"
+title="Chat with us on WhatsApp"
+style="
+position:fixed;
+bottom:25px;
+right:25px;
+background:#25D366;
+color:white;
+border-radius:50%;
+width:60px;
+height:60px;
+display:flex;
+align-items:center;
+justify-content:center;
+box-shadow:0 4px 12px rgba(0,0,0,.3);
+z-index:1000;
+font-size:30px;
+text-decoration:none;
+">
+🟢
+</a>
+
 <footer class="text-center">
 <h5>Bengaluru Cafe</h5>
 <p>Authentic Karnataka & South Indian Flavours</p>
@@ -215,6 +304,7 @@ function renderMenuCard(item) {
 
 <div class="card-body">
 
+<div class="item-info">
 <h5>
 <a href="/product.html?id=${item.id}">
 ${item.name}
@@ -222,9 +312,10 @@ ${item.name}
 </h5>
 
 <p class="price">₹${item.price}</p>
+</div>
 
 <button
-class="btn btn-order w-100"
+class="btn btn-order"
 onclick="addToCart('${item.id}','${item.name.replace(/'/g, "\\'")}',${item.price})">
 Add To Cart
 </button>
