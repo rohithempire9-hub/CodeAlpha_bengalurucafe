@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -9,8 +10,14 @@ app.use(express.static('public'));
 
 // ================= MONGODB =================
 
-const mongoUri =
-'mongodb://rohithempire9_db_user:fisher1234@ac-gfzwcrs-shard-00-00.zfyprxw.mongodb.net:27017,ac-gfzwcrs-shard-00-01.zfyprxw.mongodb.net:27017,ac-gfzwcrs-shard-00-02.zfyprxw.mongodb.net:27017/?ssl=true&replicaSet=atlas-12bz2e-shard-0&authSource=admin&appName=bengalurucafe';
+const mongoUri = process.env.MONGODB_URI;
+
+console.log('DEBUG URI:', mongoUri);
+
+if (!mongoUri) {
+    console.error('❌ MONGODB_URI is not set. Add it to your .env file or hosting platform environment variables.');
+    process.exit(1);
+}
 
 mongoose.connect(mongoUri, {
     serverSelectionTimeoutMS: 10000,
