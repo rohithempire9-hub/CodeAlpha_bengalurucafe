@@ -80,9 +80,66 @@ footer{
     margin-top:50px;
 }
 
-/* Desktop default: button is full-width below text */
-.btn-order{
-    width:100%;
+/* Zomato/Swiggy style ADD button */
+.qty-add{
+    background:white;
+    color:#ff9800;
+    border:1.5px solid #ff9800;
+    border-radius:8px;
+    font-weight:bold;
+    padding:6px 16px;
+    font-size:0.85rem;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    box-shadow:0 1px 3px rgba(0,0,0,.15);
+    transition:.2s;
+}
+
+.qty-add:hover{
+    background:#fff3e0;
+}
+
+.qty-plus{
+    font-size:1rem;
+}
+
+/* Quantity stepper (shown after item is added) */
+.qty-stepper{
+    display:flex;
+    align-items:center;
+    background:#ff9800;
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:0 1px 3px rgba(0,0,0,.15);
+}
+
+.qty-stepper button{
+    background:none;
+    border:none;
+    color:white;
+    font-size:1.1rem;
+    font-weight:bold;
+    padding:6px 12px;
+    cursor:pointer;
+}
+
+.qty-stepper span{
+    color:white;
+    font-weight:bold;
+    min-width:20px;
+    text-align:center;
+    font-size:0.9rem;
+}
+
+.cart-control{
+    flex-shrink:0;
+}
+
+/* Desktop default: card layout for menu items */
+#menuItems .card-body{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
 }
 
 /* Compact list layout for phones: small thumbnail + name/price + small button, all in a row */
@@ -109,10 +166,6 @@ footer{
     }
 
     #menuItems .card-body{
-        display:flex;
-        flex-direction:row;
-        align-items:center;
-        justify-content:space-between;
         padding:8px 10px;
         width:100%;
     }
@@ -135,14 +188,17 @@ footer{
         margin-bottom:0;
     }
 
-    #menuItems .btn-order{
-        width:auto;
-        padding:6px 14px;
-        font-size:0.8rem;
-        flex-shrink:0;
+    #menuItems .qty-add,
+    #menuItems .qty-stepper button{
+        padding:5px 10px;
+        font-size:0.75rem;
+    }
+
+    #menuItems .cart-control{
         margin-left:8px;
     }
 }
+
 
 </style>
 </head>
@@ -268,19 +324,19 @@ rel="noopener"
 title="Chat with us on WhatsApp"
 style="
 position:fixed;
-bottom:25px;
-right:25px;
+bottom:18px;
+right:18px;
 background:#25D366;
 color:white;
 border-radius:50%;
-width:60px;
-height:60px;
+width:50px;
+height:50px;
 display:flex;
 align-items:center;
 justify-content:center;
 box-shadow:0 4px 12px rgba(0,0,0,.3);
 z-index:1000;
-font-size:30px;
+font-size:24px;
 text-decoration:none;
 ">
 🟢
@@ -294,6 +350,29 @@ text-decoration:none;
 <script>
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+function getQty(id){
+    let existing = cart.find(item => item.id === id);
+    return existing ? existing.quantity : 0;
+}
+
+function cartControlHTML(item){
+    let qty = getQty(item.id);
+
+    if(qty === 0){
+        return `
+<button class="qty-btn qty-add" onclick="incrementItem('${item.id}','${item.name.replace(/'/g, "\\'")}',${item.price})">
+ADD <span class="qty-plus">+</span>
+</button>`;
+    }
+
+    return `
+<div class="qty-stepper">
+<button onclick="decrementItem('${item.id}')">−</button>
+<span>${qty}</span>
+<button onclick="incrementItem('${item.id}','${item.name.replace(/'/g, "\\'")}',${item.price})">+</button>
+</div>`;
+}
 
 function renderMenuCard(item) {
     return `
@@ -314,25 +393,34 @@ ${item.name}
 <p class="price">₹${item.price}</p>
 </div>
 
-<button
-class="btn btn-order"
-onclick="addToCart('${item.id}','${item.name.replace(/'/g, "\\'")}',${item.price})">
-Add To Cart
-</button>
+<div class="cart-control" id="control-${item.id}">
+${cartControlHTML(item)}
+</div>
 
 </div>
 </div>
 </div>`;
 }
 
+function refreshControl(id){
+    let el = document.getElementById('control-' + id);
+    if(!el) return;
+    let item = window.__menuById && window.__menuById[id];
+    if(!item) return;
+    el.innerHTML = cartControlHTML(item);
+}
+
 fetch('/api/menu')
 .then(r => r.json())
 .then(menu => {
+    window.__menuById = {};
+    menu.forEach(m => window.__menuById[m.id] = m);
+
     document.getElementById('menuItems').innerHTML =
         menu.map(renderMenuCard).join('');
 });
 
-function addToCart(id,name,price){
+function incrementItem(id,name,price){
 
 let existingItem = cart.find(item => item.id === id);
 
@@ -351,8 +439,26 @@ else{
 localStorage.setItem('cart',JSON.stringify(cart));
 
 updateCartCount();
+refreshControl(id);
 
-alert(name + " added to cart!");
+}
+
+function decrementItem(id){
+
+let existingItem = cart.find(item => item.id === id);
+
+if(!existingItem) return;
+
+existingItem.quantity -= 1;
+
+if(existingItem.quantity <= 0){
+    cart = cart.filter(item => item.id !== id);
+}
+
+localStorage.setItem('cart',JSON.stringify(cart));
+
+updateCartCount();
+refreshControl(id);
 
 }
 function searchMenu() {
