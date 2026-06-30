@@ -7,6 +7,7 @@
 <title>Checkout - Bengaluru Cafe</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/css/zomato.css">
 
 <style>
 
@@ -19,16 +20,6 @@ body{
     background:#0b3d0b;
 }
 
-.checkout-box{
-    max-width:900px;
-    margin:auto;
-    margin-top:40px;
-    background:white;
-    padding:30px;
-    border-radius:15px;
-    box-shadow:0 4px 10px rgba(0,0,0,.1);
-}
-
 .order-summary{
     background:#f8f8f8;
     padding:20px;
@@ -39,20 +30,23 @@ body{
 
 </head>
 <body>
+<header class="app-header app-header-simple">
+  <div class="header-left">
+    <a href="/" class="brand">Bengaluru Cafe</a>
+  </div>
+  <div class="header-right">
+    <a href="/orders.html" class="btn-orders">📦 My Orders</a>
+    <a href="/cart.html" class="btn-cart">🛒 Cart</a>
+    <a href="/login.html" class="btn-login">Login</a>
+  </div>
+</header>
 
-<nav class="navbar navbar-dark">
-<div class="container">
-<a href="/" class="navbar-brand">
-🍽 Bengaluru Cafe
-</a>
-</div>
-</nav>
+<div class="page-wrapper">
+  <div class="checkout-box">
 
-<div class="checkout-box">
-
-<h2 class="mb-4">
-Checkout
-</h2>
+    <h1 class="page-title">
+      Checkout
+    </h1>
 
 <div class="row">
 
@@ -69,13 +63,27 @@ Checkout
 </div>
 
 <div class="mb-3">
+<label class="form-label">Email</label>
+<input type="email" id="email" class="form-control">
+</div>
+
+<div class="mb-3">
 <label class="form-label">Delivery Address</label>
-<textarea id="address" class="form-control"></textarea>
+<input type="text" id="address" class="form-control" placeholder="House number, street, area">
+</div>
+
+<div class="mb-3">
+<label class="form-label">Landmark / Locality</label>
+<input type="text" id="landmark" class="form-control" placeholder="Near park, building name, etc.">
+</div>
+
+<div class="mb-3">
+<label class="form-label">Special Instructions</label>
+<textarea id="instructions" class="form-control" placeholder="Add delivery notes or food preferences"></textarea>
 </div>
 
 <div class="mb-3">
 <label class="form-label">Payment Method</label>
-
 <select id="payment" class="form-select">
 <option>Cash on Delivery</option>
 <option>UPI</option>
@@ -112,46 +120,95 @@ Place Order
 </button>
 
 </div>
+</div>
 
 <script>
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
+const user = JSON.parse(localStorage.getItem('user')) || {};
+
+if (user.name) {
+    document.getElementById('customerName').value = user.name;
+}
+if (user.email) {
+    document.getElementById('email').value = user.email;
+}
 
 let total = 0;
 let html = '';
 
-cart.forEach(item=>{
-
-let itemTotal = item.price * item.quantity;
-
-total += itemTotal;
-
-html += `
-<p>
-${item.name}
-× ${item.quantity}
-=
-₹${itemTotal}
-</p>
-`;
-
-});
-
-document.getElementById('summary').innerHTML = html;
-
-document.getElementById('totalAmount').innerHTML =
-`Total: ₹${total}`;
+if (cart.length === 0) {
+    document.getElementById('summary').innerHTML = `
+<div class="alert alert-warning">
+Your cart is empty. Add items to checkout.
+</div>`;
+    document.getElementById('totalAmount').innerText = 'Total: ₹0';
+} else {
+    cart.forEach(item=>{
+        let itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        html += `
+<div class="mb-2">
+<strong>${item.name}</strong> × ${item.quantity}
+<span class="float-end">₹${itemTotal}</span>
+</div>`;
+    });
+    document.getElementById('summary').innerHTML = html;
+    document.getElementById('totalAmount').innerText = `Total: ₹${total}`;
+}
 
 function placeOrder(){
+    if (cart.length === 0) {
+        alert('Your cart is empty. Add items before placing an order.');
+        return;
+    }
 
-let customerName =
-document.getElementById('customerName').value;
+    let customerName = document.getElementById('customerName').value.trim();
+    let email = document.getElementById('email').value.trim();
+    let phone = document.getElementById('phone').value.trim();
+    let address = document.getElementById('address').value.trim();
+    let landmark = document.getElementById('landmark').value.trim();
+    let instructions = document.getElementById('instructions').value.trim();
+    let payment = document.getElementById('payment').value;
 
-let phone =
-document.getElementById('phone').value;
+    if (!customerName || !email || !phone || !address || !payment) {
+        alert('Please fill in your name, email, phone, address, and payment method.');
+        return;
+    }
 
-let address =
-document.getElementById('address').value;
+    fetch('/api/order', {
+        method:'POST',
+        headers:{
+            'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+            userId: user.id || '',
+            userEmail: email,
+            customerName,
+            phone,
+            address,
+            landmark,
+            payment,
+            items: cart,
+            total,
+            specialInstructions: instructions
+        })
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        if (!data.success) {
+            alert(data.message || 'Could not place order. Please try again.');
+            return;
+        }
+
+        alert('Order placed successfully!');
+        localStorage.removeItem('cart');
+        window.location.href='/orders.html';
+    })
+    .catch(() => {
+        alert('Unable to place order at this time. Please try again later.');
+    });
+}
 
 let payment =
 document.getElementById('payment').value;

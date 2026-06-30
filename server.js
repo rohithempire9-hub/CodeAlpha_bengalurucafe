@@ -10,25 +10,41 @@ app.use(express.static('public'));
 
 // ================= MONGODB =================
 
-const mongoUri = process.env.MONGODB_URI;
+const envMongoUri = process.env.MONGODB_URI;
+const localMongoUri = 'mongodb://127.0.0.1:27017/bengalurucafe';
+const mongoUri = envMongoUri || localMongoUri;
 
-if (!mongoUri) {
-    console.error('❌ MONGODB_URI is not set. Add it to your .env file or hosting platform environment variables.');
-    process.exit(1);
+async function connectToMongo(uri) {
+    return mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 10000,
+        family: 4,
+        tls: uri.startsWith('mongodb+srv://')
+    });
 }
 
-mongoose.connect(mongoUri, {
-    serverSelectionTimeoutMS: 10000,
-    family: 4,
-    tls: true
-})
-.then(() => {
-    console.log('✅ MongoDB Connected Successfully');
-})
-.catch(err => {
-    console.error('❌ MongoDB Connection Failed');
-    console.error(err);
-});
+async function initMongo() {
+    try {
+        await connectToMongo(mongoUri);
+        console.log(`✅ MongoDB Connected Successfully (${mongoUri.startsWith('mongodb+srv://') ? 'Atlas' : 'local'})`);
+    } catch (err) {
+        console.error('❌ MongoDB Connection Failed:', err);
+
+        if (mongoUri !== localMongoUri) {
+            console.warn(`⚠️ Falling back to local MongoDB at ${localMongoUri}`);
+            try {
+                await connectToMongo(localMongoUri);
+                console.log('✅ Local MongoDB Connected Successfully');
+            } catch (localErr) {
+                console.error('❌ Local MongoDB Connection Failed:', localErr);
+                process.exit(1);
+            }
+        } else {
+            process.exit(1);
+        }
+    }
+}
+
+initMongo();
 // ================= SCHEMAS =================
 
 const userSchema = new mongoose.Schema({
@@ -40,12 +56,32 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 const orderSchema = new mongoose.Schema({
+    userId: String,
+    userEmail: String,
     customerName: String,
     phone: String,
     address: String,
+    landmark: String,
     payment: String,
     items: Array,
     total: Number,
+    specialInstructions: String,
+    status: {
+        type: String,
+        default: 'Received'
+    },
+    currentLocation: {
+        type: String,
+        default: ''
+    },
+    locationStatus: {
+        type: String,
+        default: 'Pending'
+    },
+    locationUpdatedAt: {
+        type: Date,
+        default: null
+    },
     date: {
         type: Date,
         default: Date.now
@@ -263,9 +299,43 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/order', async (req, res) => {
     try {
-        console.log("📥 Received Order Data:", req.body);
+        const {
+            userId,
+            userEmail,
+            customerName,
+            phone,
+            address,
+            landmark,
+            payment,
+            items,
+            total,
+            specialInstructions
+        } = req.body;
 
-        const order = new Order(req.body);
+        if (!customerName || !phone || !address || !payment || !items || !items.length) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please complete your contact, delivery, payment, and cart details.'
+            });
+        }
+
+        const order = new Order({
+            userId,
+            userEmail,
+            customerName,
+            phone,
+            address,
+            landmark: landmark || '',
+            payment,
+            items,
+            total,
+            specialInstructions: specialInstructions || '',
+            status: 'Received',
+            currentLocation: '',
+            locationStatus: 'Pending',
+            locationUpdatedAt: null
+        });
+
         await order.save();
 
         res.json({
@@ -286,16 +356,29 @@ app.post('/api/order', async (req, res) => {
 
 app.get('/api/orders', async (req, res) => {
     try {
-        const orders = await Order.find().sort({ date: -1 });
+        const filter = {};
+        if (req.query.userId) {
+            filter.userId = req.query.userId;
+        }
+
+        const orders = await Order.find(filter).sort({ date: -1 });
         
         const formattedOrders = orders.map(order => ({
             id: order._id,
+            userId: order.userId,
+            userEmail: order.userEmail,
             customerName: order.customerName,
             phone: order.phone,
             address: order.address,
+            landmark: order.landmark,
             payment: order.payment,
             items: order.items,
             total: order.total,
+            specialInstructions: order.specialInstructions,
+            status: order.status,
+            currentLocation: order.currentLocation,
+            locationStatus: order.locationStatus,
+            locationUpdatedAt: order.locationUpdatedAt,
             date: order.date
         }));
 
@@ -303,6 +386,46 @@ app.get('/api/orders', async (req, res) => {
     } catch (error) {
         console.error('❌ Get Orders Failed:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// ================= UPDATE ORDER STATUS =================
+
+app.put('/api/orders/:id', async (req, res) => {
+    try {
+        const { status, currentLocation, locationStatus } = req.body;
+        const allowed = ['Received', 'Preparing', 'On the way', 'Delivered', 'Cancelled'];
+        const update = {};
+
+        if (status !== undefined) {
+            if (!allowed.includes(status)) {
+                return res.status(400).json({ success: false, message: 'Invalid order status' });
+            }
+            update.status = status;
+        }
+
+        if (currentLocation !== undefined) {
+            update.currentLocation = currentLocation;
+        }
+
+        if (locationStatus !== undefined) {
+            update.locationStatus = locationStatus;
+            update.locationUpdatedAt = new Date();
+        }
+
+        if (Object.keys(update).length === 0) {
+            return res.status(400).json({ success: false, message: 'No order updates were provided' });
+        }
+
+        const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true });
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error('❌ Update Order Status Failed:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -340,6 +463,22 @@ app.get('/api/users', async (req, res) => {
 
 // ================= SERVER =================
 
-app.listen(3000, () => {
-    console.log('🚀 Server running on http://localhost:3000');
-});
+const port = parseInt(process.env.PORT, 10) || 3000;
+
+function startServer(currentPort) {
+    const server = app.listen(currentPort, () => {
+        console.log(`🚀 Server running on http://localhost:${currentPort}`);
+    });
+
+    server.on('error', err => {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`⚠️ Port ${currentPort} is in use. Trying ${currentPort + 1}...`);
+            startServer(currentPort + 1);
+        } else {
+            console.error('❌ Server failed to start:', err);
+            process.exit(1);
+        }
+    });
+}
+
+startServer(port);

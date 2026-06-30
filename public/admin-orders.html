@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Order Tracking</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/css/zomato.css">
+<style>
+body { background: #f5f5f5; font-family: 'Segoe UI'; }
+.dashboard { max-width: 1200px; margin: auto; padding: 30px 24px 48px; }
+.card { border: none; border-radius: 20px; box-shadow: 0 18px 40px rgba(0,0,0,.05); }
+.order-tracking-box { border: 1px solid rgba(0,0,0,.08); border-radius: 20px; padding: 22px; margin-bottom: 24px; background: #fff; }
+.order-tracking-box h5 { margin-bottom: 18px; }
+</style>
+</head>
+<body>
+<header class="app-header app-header-simple">
+  <div class="header-left">
+    <a href="/" class="brand">Bengaluru Cafe</a>
+  </div>
+  <div class="header-right">
+    <a href="/admin.html" class="btn btn-outline-secondary btn-sm">🏠 Admin Home</a>
+    <a href="/orders.html" class="btn-orders">📦 My Orders</a>
+    <a href="/cart.html" class="btn-cart">🛒 Cart</a>
+    <a href="/login.html" class="btn-login">Login</a>
+  </div>
+</header>
+
+<div class="page-wrapper">
+<div class="dashboard">
+  <h1 class="mb-4">🚚 Admin Order Tracking</h1>
+
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card p-3 text-center">
+        <h2 id="totalOrders">0</h2>
+        <p>Total Orders</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-3 text-center">
+        <h2 id="totalPreparing">0</h2>
+        <p>Preparing</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-3 text-center">
+        <h2 id="totalOnTheWay">0</h2>
+        <p>On the way</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="locationUpdateBox" class="order-tracking-box d-none">
+    <h5>Update Delivery Tracking</h5>
+    <input type="hidden" id="locationOrderId">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label">Current Location</label>
+        <input class="form-control" id="locationCurrent" placeholder="Eg. Koramangala, ITPL, Mall area">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Delivery Status</label>
+        <input class="form-control" id="locationStatus" placeholder="Eg. Out for delivery, Reached locality">
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button class="btn btn-primary w-50" onclick="updateLocation()">Save</button>
+        <button class="btn btn-outline-secondary w-50" onclick="hideLocationForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="mb-3">Orders</h2>
+  <div class="table-responsive">
+    <table class="table table-striped table-bordered align-middle">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Customer</th>
+          <th>Phone</th>
+          <th>Delivery</th>
+          <th>Location</th>
+          <th>Status</th>
+          <th>Total</th>
+          <th>Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="ordersTable"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- Order details modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <strong>Customer:</strong> <span id="orderDetailsCustomer"></span>
+        </div>
+        <div class="mb-3">
+          <strong>Delivery address:</strong> <span id="orderDetailsAddress"></span>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Payment:</strong> <span id="orderDetailsPayment"></span></div>
+          <div class="col-md-6"><strong>Status:</strong> <span id="orderDetailsStatus"></span></div>
+        </div>
+        <div class="mb-3">
+          <strong>Tracking:</strong> <span id="orderDetailsTracking"></span>
+        </div>
+        <div class="mb-3">
+          <strong>Special instructions:</strong> <span id="orderDetailsInstructions"></span>
+        </div>
+        <div class="mb-3">
+          <strong>Placed on:</strong> <span id="orderDetailsDate"></span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Line total</th>
+              </tr>
+            </thead>
+            <tbody id="orderDetailsItems"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let ordersData = [];
+
+function loadAdminOrders() {
+  fetch('/api/orders')
+    .then(r => r.json())
+    .then(data => {
+      ordersData = data;
+      const totalOrders = data.length;
+      const totalPreparing = data.filter(o => o.status === 'Preparing').length;
+      const totalOnTheWay = data.filter(o => o.status === 'On the way').length;
+
+      document.getElementById('totalOrders').innerText = totalOrders;
+      document.getElementById('totalPreparing').innerText = totalPreparing;
+      document.getElementById('totalOnTheWay').innerText = totalOnTheWay;
+
+      const html = data.map(order => `
+<tr>
+  <td>${order.id}</td>
+  <td>${order.customerName}</td>
+  <td>${order.phone}</td>
+  <td>${order.address.replace(/\n/g, ', ')}${order.landmark ? ', ' + order.landmark : ''}</td>
+  <td>
+    <div class="small mb-1">${order.locationStatus || 'Pending'}</div>
+    <div class="text-muted">${order.currentLocation || 'No location yet'}</div>
+  </td>
+  <td>
+    <div class="d-flex flex-column gap-2">
+      <span class="badge ${getStatusBadgeClass(order.status)}">${order.status}</span>
+      <select class="form-select form-select-sm" onchange="updateOrderStatus('${order.id}', this.value)">
+        <option value="Received" ${order.status === 'Received' ? 'selected' : ''}>Received</option>
+        <option value="Preparing" ${order.status === 'Preparing' ? 'selected' : ''}>Preparing</option>
+        <option value="On the way" ${order.status === 'On the way' ? 'selected' : ''}>On the way</option>
+        <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+        <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+      </select>
+    </div>
+  </td>
+  <td>₹${order.total}</td>
+  <td>${new Date(order.date).toLocaleString()}</td>
+  <td>
+    <button class="btn btn-sm btn-outline-secondary me-1" onclick="showLocationForm('${order.id}', '${(order.currentLocation || '').replace(/'/g, "\\'")}', '${(order.locationStatus || '').replace(/'/g, "\\'")}')">Track</button>
+    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrderDetails('${order.id}')">Items</button>
+  </td>
+</tr>
+      `).join('');
+
+      document.getElementById('ordersTable').innerHTML = html;
+    })
+    .catch(() => {
+      document.getElementById('ordersTable').innerHTML = '<tr><td colspan="9" class="text-center">Unable to load orders.</td></tr>';
+    });
+}
+
+function getStatusBadgeClass(status) {
+  switch (status) {
+    case 'Preparing': return 'bg-warning text-dark';
+    case 'On the way': return 'bg-info text-dark';
+    case 'Delivered': return 'bg-success';
+    case 'Cancelled': return 'bg-danger';
+    default: return 'bg-secondary';
+  }
+}
+
+function updateOrderStatus(orderId, status) {
+  fetch(`/api/orders/${orderId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) {
+      alert(data.message || 'Could not update order status.');
+      return;
+    }
+    loadAdminOrders();
+  })
+  .catch(() => {
+    alert('Unable to update order status.');
+  });
+}
+
+function showLocationForm(orderId, currentLocation, currentStatus) {
+  document.getElementById('locationOrderId').value = orderId;
+  document.getElementById('locationCurrent').value = currentLocation || '';
+  document.getElementById('locationStatus').value = currentStatus || '';
+  document.getElementById('locationUpdateBox').classList.remove('d-none');
+  window.scrollTo({ top: document.getElementById('locationUpdateBox').offsetTop - 20, behavior: 'smooth' });
+}
+
+function hideLocationForm() {
+  document.getElementById('locationUpdateBox').classList.add('d-none');
+}
+
+function updateLocation() {
+  const orderId = document.getElementById('locationOrderId').value;
+  const currentLocation = document.getElementById('locationCurrent').value.trim();
+  const locationStatus = document.getElementById('locationStatus').value.trim();
+
+  if (!orderId) {
+    alert('Please select an order first.');
+    return;
+  }
+
+  fetch(`/api/orders/${orderId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentLocation, locationStatus })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) {
+      alert(data.message || 'Could not update delivery tracking.');
+      return;
+    }
+    hideLocationForm();
+    loadAdminOrders();
+  })
+  .catch(() => {
+    alert('Unable to save delivery tracking information.');
+  });
+}
+
+function viewOrderDetails(orderId) {
+  const order = ordersData.find(o => o.id === orderId);
+  if (!order) {
+    alert('Order not found');
+    return;
+  }
+
+  document.getElementById('orderDetailsModalLabel').innerText = `Order ${order.id} Details`;
+  document.getElementById('orderDetailsCustomer').innerText = `${order.customerName} (${order.phone})`;
+  document.getElementById('orderDetailsAddress').innerText = `${order.address}${order.landmark ? ', ' + order.landmark : ''}`;
+  document.getElementById('orderDetailsPayment').innerText = `${order.payment}`;
+  document.getElementById('orderDetailsStatus').innerText = `${order.status}`;
+  document.getElementById('orderDetailsTracking').innerText = `${order.locationStatus || 'Pending'} — ${order.currentLocation || 'No location yet'}`;
+  document.getElementById('orderDetailsInstructions').innerText = order.specialInstructions || 'None';
+  document.getElementById('orderDetailsDate').innerText = new Date(order.date).toLocaleString();
+
+  const itemsHtml = order.items.map(item => `
+      <tr>
+        <td>${item.name}</td>
+        <td>${item.quantity}</td>
+        <td>₹${item.price}</td>
+        <td>₹${item.price * item.quantity}</td>
+      </tr>
+    `).join('');
+
+  document.getElementById('orderDetailsItems').innerHTML = itemsHtml;
+
+  const orderDetailsModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+  orderDetailsModal.show();
+}
+
+loadAdminOrders();
+</script>
+</body>
+</html>
