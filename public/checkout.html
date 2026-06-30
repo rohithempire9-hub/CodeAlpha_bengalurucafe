@@ -45,9 +45,9 @@ body{
 </header>
 
 <script>
-const user = JSON.parse(localStorage.getItem('user'));
-if (user) {
-  document.getElementById('welcomeUser').innerHTML = `👤 Welcome, ${user.name}`;
+const headerUser = JSON.parse(localStorage.getItem('user'));
+if (headerUser) {
+  document.getElementById('welcomeUser').innerHTML = `👤 Welcome, ${headerUser.name}`;
   document.getElementById('logoutBtn').style.display = 'inline-flex';
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('registerBtn').style.display = 'none';
@@ -143,13 +143,13 @@ Place Order
 <script>
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
-const user = JSON.parse(localStorage.getItem('user')) || {};
+const checkoutUser = JSON.parse(localStorage.getItem('user')) || {};
 
-if (user.name) {
-    document.getElementById('customerName').value = user.name;
+if (checkoutUser.name) {
+    document.getElementById('customerName').value = checkoutUser.name;
 }
-if (user.email) {
-    document.getElementById('email').value = user.email;
+if (checkoutUser.email) {
+    document.getElementById('email').value = checkoutUser.email;
 }
 
 let total = 0;
@@ -200,7 +200,7 @@ function placeOrder(){
             'Content-Type':'application/json'
         },
         body:JSON.stringify({
-            userId: user.id || '',
+            userId: checkoutUser.id || '',
             userEmail: email,
             customerName,
             phone,

@@ -78,9 +78,9 @@ rel="stylesheet">
 </header>
 
 <script>
-const user = JSON.parse(localStorage.getItem('user'));
-if (user) {
-  document.getElementById('welcomeUser').innerHTML = `👤 Welcome, ${user.name}`;
+const headerUser = JSON.parse(localStorage.getItem('user'));
+if (headerUser) {
+  document.getElementById('welcomeUser').innerHTML = `👤 Welcome, ${headerUser.name}`;
   document.getElementById('logoutBtn').style.display = 'inline-flex';
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('registerBtn').style.display = 'none';
@@ -104,16 +104,16 @@ function logout() {
 
 <script>
 
-const user = JSON.parse(localStorage.getItem('user')) || null;
+const ordersUser = JSON.parse(localStorage.getItem('user')) || null;
 const container = document.getElementById('ordersContainer');
 
-if (!user) {
+if (!ordersUser) {
     container.innerHTML = `
 <div class="alert alert-info">
 Please <a href="/login.html">login</a> to view your order history.
 </div>`;
 } else {
-    fetch(`/api/orders?userId=${user.id}`)
+    fetch(`/api/orders?userId=${ordersUser.id}`)
     .then(r=>r.json())
     .then(data=>{
         if (!data.length) {
