@@ -70,9 +70,27 @@ rel="stylesheet">
   <div class="header-right">
     <a href="/orders.html" class="btn-orders">📦 My Orders</a>
     <a href="/cart.html" class="btn-cart">🛒 Cart</a>
-    <a href="/login.html" class="btn-login">Login</a>
+    <a href="/login.html" id="loginBtn" class="btn-login">Login</a>
+    <a href="/register.html" id="registerBtn" class="btn-register">Register</a>
+    <span id="welcomeUser" class="welcome-user"></span>
+    <button id="logoutBtn" type="button" class="btn-logout" style="display:none;" onclick="logout();">Logout</button>
   </div>
 </header>
+
+<script>
+const user = JSON.parse(localStorage.getItem('user'));
+if (user) {
+  document.getElementById('welcomeUser').innerHTML = `👤 Welcome, ${user.name}`;
+  document.getElementById('logoutBtn').style.display = 'inline-flex';
+  document.getElementById('loginBtn').style.display = 'none';
+  document.getElementById('registerBtn').style.display = 'none';
+}
+function logout() {
+  localStorage.removeItem('user');
+  alert('Logged Out Successfully');
+  location.reload();
+}
+</script>
 
 <div class="page-wrapper">
 <div class="container mt-5">
