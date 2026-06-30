@@ -228,53 +228,6 @@ function placeOrder(){
     });
 }
 
-let payment =
-document.getElementById('payment').value;
-
-if(
-!customerName ||
-!phone ||
-!address
-){
-alert('Please fill all details');
-return;
-}
-
-fetch('/api/order',{
-
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify({
-
-customerName,
-phone,
-address,
-payment,
-items:cart,
-total
-
-})
-
-})
-.then(r=>r.json())
-.then(()=>{
-
-alert(
-'Order placed successfully!'
-);
-
-localStorage.removeItem('cart');
-
-window.location.href='/';
-
-});
-
-}
-
 </script>
 
 </body>
